@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新刊プロジェクト原価管理システム</title>
+<style>
+:root {
+  --bg:#f7f6f3;--surface:#fff;--surface2:#f2f0eb;--border:#e0ddd5;--border2:#ccc9bf;
+  --text:#1a1a18;--text2:#6b6960;--text3:#999;
+  --int:#534AB7;--int-bg:#EEEDFE;--mfg:#185FA5;--mfg-bg:#E6F1FB;
+  --sga:#993556;--sga-bg:#FBEAF0;--phs:#0F6E56;--phs-bg:#E1F5EE;
+  --link:#BA7517;--link-bg:#FAEEDA;--green:#1D9E75;--red:#C0392B;--amber:#BA7517;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;font-size:14px;background:var(--bg);color:var(--text);min-height:100vh;}
+.layout{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border);}
+.sidebar-logo{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.sidebar-section{padding:8px 12px 4px;font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;font-weight:600;}
+.proj-item{padding:10px 16px;cursor:pointer;border-left:3px solid transparent;display:flex;flex-direction:column;gap:3px;transition:all .15s;}
+.proj-item:hover{background:var(--surface2);}
+.proj-item.active{background:var(--int-bg);border-left-color:var(--int);}
+.proj-item .pname{font-size:12px;font-weight:600;}
+.proj-item .psub{font-size:11px;color:var(--text2);}
+.new-proj-btn{margin:12px;padding:9px;border:1.5px dashed var(--border2);border-radius:var(--radius);background:none;cursor:pointer;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;justify-content:center;transition:all .15s;}
+.new-proj-btn:hover{background:var(--surface2);color:var(--text);}
+.sidebar-bottom{margin-top:auto;padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.view-toggle{display:flex;background:var(--surface2);border-radius:var(--radius);padding:3px;gap:2px;margin:12px;}
+.vt-btn{flex:1;padding:6px 4px;border:none;border-radius:6px;cursor:pointer;font-size:11px;background:none;color:var(--text2);font-weight:500;transition:all .15s;}
+.vt-btn.ai{background:var(--int);color:#fff;}
+.vt-btn.ao{background:var(--phs);color:#fff;}
+.vt-btn.al{background:var(--amber);color:#fff;}
+.main{flex:1;overflow-y:auto;background:var(--bg);}
+.main-inner{max-width:900px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:20px;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.page-title{font-size:20px;font-weight:700;}
+.page-sub{font-size:12px;color:var(--text2);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;display:inline-flex;align-items:center;gap:3px;}
+.badge-int{background:var(--int-bg);color:var(--int);}
+.badge-off{background:var(--phs-bg);color:var(--phs);}
+.badge-lbr{background:var(--link-bg);color:var(--link);}
+.badge-link{background:var(--link-bg);color:var(--link);}
+.badge-mfg{background:var(--mfg-bg);color:var(--mfg);}
+.badge-sga{background:var(--sga-bg);color:var(--sga);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.card-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.metric{background:var(--surface2);border-radius:var(--radius);padding:12px 14px;}
+.metric-label{font-size:11px;color:var(--text2);margin-bottom:4px;}
+.metric-value{font-size:18px;font-weight:700;}
+.green{color:var(--green);}.red{color:var(--red);}.blue{color:var(--mfg);}.amber{color:var(--amber);}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{padding:8px 10px;text-align:left;font-weight:600;font-size:11px;border-bottom:2px solid var(--border);color:var(--text2);white-space:nowrap;}
+td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+.linked-row td{background:#fffdf5;}
+.tfoot-row td{background:var(--surface2);font-weight:700;border-top:2px solid var(--border);}
+.tr-right{text-align:right;}
+.input-cell{width:110px;text-align:right;background:#f0f7ff;border:1px solid #b5d4f4;border-radius:5px;padding:4px 8px;font-size:12px;color:var(--mfg);font-family:inherit;transition:border-color .15s;}
+.input-cell:focus{outline:none;border-color:var(--mfg);background:#fff;}
+.diff-p{color:var(--green);font-weight:600;}
+.diff-n{color:var(--red);font-weight:600;}
+.pl-block{background:var(--surface2);border-radius:var(--radius);padding:14px 18px;}
+.pl-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid var(--border);}
+.pl-row:last-child{border-bottom:none;}
+.pl-row.indent{padding-left:16px;font-size:12px;color:var(--text2);}
+.pl-row.subtotal{font-weight:700;border-top:2px solid var(--border2);margin-top:4px;padding-top:8px;border-bottom:none;font-size:14px;}
+.phase-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.phase-tab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border2);background:none;color:var(--text2);transition:all .15s;}
+.phase-tab.active{background:var(--phs);color:#fff;border-color:var(--phs);}
+.phase-tab:hover:not(.active){background:var(--surface2);}
+.reprint-badge{background:var(--phs-bg);color:var(--phs);font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:600;}
+.progress-wrap{height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:6px;}
+.progress-bar{height:100%;border-radius:4px;transition:width .4s;}
+.btn{padding:8px 14px;border-radius:var(--radius);font-size:12px;cursor:pointer;border:1.5px solid var(--border2);background:var(--surface);color:var(--text);font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-weight:500;}
+.btn:hover{background:var(--surface2);}
+.btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
+.btn-primary:hover{opacity:.85;}
+.btn-danger{color:var(--red);border-color:#f09595;}
+.btn-danger:hover{background:#fff0f0;}
+.btn-sm{padding:4px 9px;font-size:11px;}
+.btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.info-box{background:var(--link-bg);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--link);display:flex;align-items:flex-start;gap:8px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:18px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-label{font-size:11px;color:var(--text2);font-weight:600;}
+.form-input{padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:inherit;background:var(--surface);transition:border-color .15s;}
+.form-input:focus{outline:none;border-color:var(--mfg);}
+.form-select{padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:inherit;background:var(--surface);}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+.full-col{grid-column:1/-1;}
+.checkbox-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+.sim-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;}
+.sim-verdict{border-radius:var(--radius);padding:12px 14px;font-size:12px;margin-top:12px;display:flex;align-items:flex-start;gap:8px;}
+.verdict-ok{background:#eaf3de;color:#27500A;}
+.verdict-warn{background:var(--link-bg);color:var(--link);}
+.verdict-ng{background:#FCEBEB;color:#791F1F;}
+.empty-state{text-align:center;padding:80px 20px;color:var(--text2);}
+.empty-state .icon{font-size:48px;margin-bottom:16px;}
+/* ローディング・接続設定 */
+.setup-card{background:var(--surface);border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:28px;text-align:center;}
+.setup-step{display:flex;align-items:flex-start;gap:12px;text-align:left;margin-bottom:14px;padding:12px 14px;background:var(--surface2);border-radius:var(--radius);}
+.step-num{width:24px;height:24px;background:var(--int);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.step-body{font-size:12px;line-height:1.6;}
+.step-body strong{display:block;font-size:13px;margin-bottom:2px;}
+.code-block{background:#1e1e2e;color:#cdd6f4;border-radius:var(--radius);padding:10px 14px;font-family:monospace;font-size:12px;text-align:left;margin:8px 0;word-break:break-all;}
+.sync-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
+.sync-dot.syncing{background:var(--amber);animation:pulse .8s infinite;}
+.sync-dot.error{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">📚 原価管理</div>
+      <div class="sync-indicator" id="sync-status" style="margin-top:6px;">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-label">接続中...</span>
+      </div>
+    </div>
+    <div class="view-toggle">
+      <button class="vt-btn ai" onclick="setView('internal')" id="vt-int">社内</button>
+      <button class="vt-btn" onclick="setView('official')" id="vt-off">公式</button>
+      <button class="vt-btn" onclick="setView('labor')" id="vt-lbr">人件費</button>
+    </div>
+    <div class="sidebar-section">プロジェクト</div>
+    <div id="proj-list"></div>
+    <button class="new-proj-btn" onclick="openModal('new-proj')">＋ 新規プロジェクト</button>
+    <div class="sidebar-bottom">
+      <button class="btn" style="width:100%;justify-content:center;font-size:11px;" onclick="exportCSV()">↓ CSVエクスポート</button>
+      <button class="btn" style="width:100%;justify-content:center;font-size:11px;" onclick="openModal('settings')">⚙ GAS設定</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="main-inner" id="main-content">
+      <div class="empty-state"><div class="icon">⏳</div><h2>データを読み込んでいます...</h2></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script>
+// ===== GAS URL設定 =====
+// ここにあなたのGAS WebアプリURLを貼ってください
+let GAS_URL = localStorage.getItem('gas_url') || '';
+
+// ===== 定数 =====
+const CAT_LABELS={print:'印刷',studio:'音声収録',audio:'音声編集',illust:'イラスト',trans:'翻訳',dtp:'DTP',seihan:'製版',royalty:'印税',staff:'人件費',mkt:'販促',misc:'その他'};
+const REPRINT_PRINT=220;
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function fmt(n){return Math.round(Math.abs(n)).toLocaleString('ja-JP');}
+function yen(n){return(n<0?'▲':'')+`¥${fmt(n)}`;}
+function diffStr(b,a){if(!a)return'—';const d=b-a;return`<span class="${d>=0?'diff-p':'diff-n'}">${d>=0?'▼':'▲'}¥${fmt(d)}</span>`;}
+
+// ===== 状態 =====
+let projects=[], curId=null, curView='internal', curPhase=0, isSaving=false;
+let laborData={salary:600,bonus:100,social:100,expense:30,months:12,overhead:20,projList:[{id:'p1',name:'プロジェクト',months:2}]};
+
+// ===== GAS通信 =====
+async function gasGet(action, params={}) {
+  if (!GAS_URL) throw new Error('GAS URLが設定されていません');
+  const url = GAS_URL + '?action=' + action + Object.entries(params).map(([k,v])=>`&${k}=${encodeURIComponent(v)}`).join('');
+  const res = await fetch(url);
+  return await res.json();
+}
+
+async function gasPost(action, data) {
+  if (!GAS_URL) throw new Error('GAS URLが設定されていません');
+  const url = GAS_URL + '?action=' + action;
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { 'Content-Type': 'text/plain' }
+  });
+  return await res.json();
+}
+
+function setSyncStatus(state, msg) {
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  dot.className = 'sync-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
+  label.textContent = msg;
+}
+
+async function loadAll() {
+  if (!GAS_URL) {
+    setSyncStatus('error', 'GAS未設定');
+    showSetupGuide();
+    return;
+  }
+  try {
+    setSyncStatus('syncing', '読み込み中...');
+    const result = await gasGet('getAll');
+    if (result.error) throw new Error(result.error);
+    projects = result.projects || [];
+    if (projects.length > 0) curId = projects[0].id;
+    setSyncStatus('ok', '同期済み ' + new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}));
+    renderSidebar();
+    renderMain();
+  } catch(e) {
+    setSyncStatus('error', '接続エラー');
+    console.error(e);
+    showSetupGuide();
+  }
+}
+
+async function saveProject(p) {
+  if (!GAS_URL || isSaving) return;
+  isSaving = true;
+  setSyncStatus('syncing', '保存中...');
+  try {
+    const result = await gasPost('save', p);
+    if (result.error) throw new Error(result.error);
+    setSyncStatus('ok', '保存済み ' + new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}));
+  } catch(e) {
+    setSyncStatus('error', '保存失敗');
+    console.error(e);
+  } finally {
+    isSaving = false;
+  }
+}
+
+async function deleteProjectRemote(id) {
+  if (!GAS_URL) return;
+  await gasPost('delete', {id});
+}
+
+// ===== デフォルトデータ =====
+function makeDefaultInternal(){return[
+  {id:uid(),cat:'studio',name:'スタジオ費',budget:66000,actual:0,linked:true},
+  {id:uid(),cat:'audio',name:'音声編集費',budget:84000,actual:0,linked:true},
+  {id:uid(),cat:'illust',name:'イラスト料',budget:262000,actual:0,linked:true},
+  {id:uid(),cat:'trans',name:'翻訳料',budget:378400,actual:0,linked:true},
+  {id:uid(),cat:'dtp',name:'DTP費',budget:332800,actual:0,linked:true},
+  {id:uid(),cat:'seihan',name:'製版代',budget:50000,actual:0,linked:true},
+  {id:uid(),cat:'print',name:'書籍印刷費',budget:660000,actual:0,linked:true},
+  {id:uid(),cat:'royalty',name:'印税（6%）',budget:360000,actual:0,linked:false},
+  {id:uid(),cat:'staff',name:'編集人件費',budget:1300000,actual:0,linked:false},
+  {id:uid(),cat:'misc',name:'制作諸費',budget:50000,actual:0,linked:false},
+];}
+
+function makeDefaultOfficial(){return{
+  mfg:[
+    {id:uid(),cat:'print',name:'書籍印刷費（初版）',budget:660000,actual:0,linked:true},
+    {id:uid(),cat:'studio',name:'スタジオ費',budget:66000,actual:0,linked:true},
+    {id:uid(),cat:'audio',name:'音声編集費',budget:84000,actual:0,linked:true},
+    {id:uid(),cat:'illust',name:'イラスト料',budget:262000,actual:0,linked:true},
+    {id:uid(),cat:'trans',name:'翻訳料',budget:378400,actual:0,linked:true},
+    {id:uid(),cat:'dtp',name:'DTP費',budget:332800,actual:0,linked:true},
+    {id:uid(),cat:'seihan',name:'製版代',budget:50000,actual:0,linked:true},
+    {id:uid(),cat:'royalty',name:'印税（初版）',budget:360000,actual:0,linked:false},
+    {id:uid(),cat:'staff',name:'編集人件費',budget:1300000,actual:0,linked:false},
+  ],
+  sga:[
+    {id:uid(),cat:'misc',name:'制作諸費',budget:50000,actual:0},
+  ],
+  phases:[
+    {label:'発売時',ship:0,ret:0,reprintUnits:0},
+    {label:'3ヶ月後',ship:0,ret:0,reprintUnits:0},
+    {label:'6ヶ月後',ship:0,ret:0,reprintUnits:0},
+    {label:'1年後',ship:0,ret:0,reprintUnits:0},
+    {label:'1年6ヶ月後',ship:0,ret:0,reprintUnits:0},
+  ]
+};}
+
+function proj(){return projects.find(p=>p.id===curId);}
+
+// ===== セットアップガイド =====
+function showSetupGuide(){
+  document.getElementById('main-content').innerHTML=`
+    <div class="page-title" style="margin-bottom:16px;">セットアップガイド</div>
+    <div class="setup-card">
+      <div style="font-size:32px;margin-bottom:12px;">🔧</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px;">Google Apps Scriptとの接続が必要です</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">以下の手順を実行するとチーム全員でリアルタイムに共同編集できます（約10分）</div>
+    </div>
+    <div class="card">
+      <div class="card-title">セットアップ手順</div>
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Googleスプレッドシートを新規作成</strong>
+          <a href="https://sheets.new" target="_blank" style="color:var(--mfg);">sheets.new</a> を開いて新しいスプレッドシートを作成してください。ファイル名は「原価管理DB」など分かりやすい名前にしてください。
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>拡張機能 → Apps Script を開く</strong>
+          スプレッドシートのメニューから「拡張機能」→「Apps Script」をクリックしてください。
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>コード.gs の内容を貼り付ける</strong>
+          ダウンロードした「コード.gs」の中身をすべてコピーして、Apps Scriptのエディタに貼り付けて保存（Ctrl+S）してください。
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>デプロイ → 新しいデプロイ</strong>
+          右上の「デプロイ」ボタンから「新しいデプロイ」を選択。種類は「ウェブアプリ」、「アクセスできるユーザー」を<strong>「全員」</strong>に設定して「デプロイ」をクリック。表示されたURLをコピーしてください。
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>このシステムにURLを設定する</strong>
+          下のボタンからコピーしたURLを貼り付けてください。設定後、このファイルをGoogleドライブに置いてURLを共有すれば全員が使えます。
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn btn-primary" onclick="openModal('settings')">⚙ GAS URLを設定する</button>
+      </div>
+    </div>`;
+}
+
+// ===== サイドバー =====
+function renderSidebar(){
+  const el=document.getElementById('proj-list');
+  el.innerHTML='';
+  projects.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='proj-item'+(p.id===curId?' active':'');
+    div.innerHTML=`<div class="pname">${p.name}</div><div class="psub">¥${(p.price||0).toLocaleString()} / ${(p.printFirst||0).toLocaleString()}部</div>`;
+    div.onclick=()=>{curId=p.id;curPhase=0;renderSidebar();renderMain();};
+    el.appendChild(div);
+  });
+  ['vt-int','vt-off','vt-lbr'].forEach(id=>document.getElementById(id).className='vt-btn');
+  const map={internal:'vt-int',official:'vt-off',labor:'vt-lbr'};
+  const cls={internal:'ai',official:'ao',labor:'al'};
+  document.getElementById(map[curView]).classList.add(cls[curView]);
+}
+
+function setView(v){curView=v;renderSidebar();renderMain();}
+
+// ===== メイン描画 =====
+function renderMain(){
+  if(curView==='labor'){renderLabor();return;}
+  if(!proj()){
+    document.getElementById('main-content').innerHTML=`
+      <div class="empty-state"><div class="icon">📂</div>
+      <h2>プロジェクトを選択してください</h2>
+      <p>左のサイドバーからプロジェクトを選ぶか、「＋ 新規プロジェクト」で作成してください。</p></div>`;
+    return;
+  }
+  if(curView==='internal')renderInternal();
+  else renderOfficial();
+}
+
+// ===== 社内ビュー =====
+function renderInternal(){
+  const p=proj();
+  const items=p.internal||[];
+  const tb=items.reduce((s,i)=>s+i.budget,0);
+  const ta=items.reduce((s,i)=>s+i.actual,0);
+  const rev=(p.salesUnitInt||0)*(p.printFirst||0);
+  const profit=rev-tb;
+  const bep=p.salesUnitInt>0?Math.ceil(tb/p.salesUnitInt):0;
+
+  const rows=items.map(item=>`
+    <tr class="${item.linked?'linked-row':''}">
+      <td>${item.name}${item.linked?` <span class="badge badge-link">連動</span>`:''}</td>
+      <td style="color:var(--text2);font-size:11px;">${CAT_LABELS[item.cat]||''}</td>
+      <td class="tr-right"><input class="input-cell" type="number" value="${item.budget}"
+        onchange="updateItem('internal','${item.id}','budget',+this.value)" style="width:100px;"/></td>
+      <td class="tr-right"><input class="input-cell" type="number" value="${item.actual}"
+        onchange="updateItem('internal','${item.id}','actual',+this.value)" style="width:100px;"/></td>
+      <td class="tr-right">${diffStr(item.budget,item.actual)}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="removeItem('internal','${item.id}')">✕</button></td>
+    </tr>`).join('');
+
+  document.getElementById('main-content').innerHTML=`
+    <div class="page-header">
+      <div>
+        <div class="page-title">${p.name}</div>
+        <div class="page-sub">
+          <span class="badge badge-int">社内予算ビュー</span>
+          卸価格 ¥${(p.salesUnitInt||0).toLocaleString()} / 正味${Math.round((p.wholesaleInt||0)*100)}% / 初版${(p.printFirst||0).toLocaleString()}部
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="openModal('edit-proj')">⚙ 設定</button>
+        <button class="btn" onclick="openModal('add-item-int')">＋ 費目追加</button>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">想定売上（卸×初版）</div><div class="metric-value">¥${fmt(rev)}</div></div>
+      <div class="metric"><div class="metric-label">総費用（予算）</div><div class="metric-value">¥${fmt(tb)}</div></div>
+      <div class="metric"><div class="metric-label">利益（予算）</div><div class="metric-value ${profit>=0?'green':'red'}">${yen(profit)}</div></div>
+      <div class="metric"><div class="metric-label">損益分岐点</div><div class="metric-value blue">${fmt(bep)}部</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">費目明細 <span style="margin-left:auto;font-size:11px;color:var(--text2);"><span class="badge badge-link">連動</span> 項目は公式会計と同期</span></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th style="width:32%">費目</th><th style="width:10%">分類</th>
+          <th style="width:15%;text-align:right">予算</th><th style="width:15%;text-align:right">実績</th>
+          <th style="width:13%;text-align:right">差異</th><th style="width:8%"></th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tr class="tfoot-row"><td colspan="2">合計</td>
+          <td class="tr-right">¥${fmt(tb)}</td>
+          <td class="tr-right" style="color:var(--mfg);">¥${fmt(ta)}</td>
+          <td class="tr-right">${diffStr(tb,ta)}</td><td></td></tr>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">社内損益サマリー</div>
+      <div class="pl-block">
+        <div class="pl-row"><span>売上（卸価格×初版部数）</span><span>¥${fmt(rev)}</span></div>
+        <div class="pl-row indent"><span>総費用</span><span>△¥${fmt(tb)}</span></div>
+        <div class="pl-row subtotal ${profit>=0?'green':'red'}"><span>利益</span><span>${yen(profit)}</span></div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text2);">
+        損益分岐点 <strong style="color:var(--text);">${fmt(bep)}部</strong>（初版の${Math.round(bep/Math.max(p.printFirst,1)*100)}%）
+        <div class="progress-wrap"><div class="progress-bar" style="width:${Math.min(100,Math.round((p.printFirst||0)/Math.max(bep,1)*100))}%;background:${(p.printFirst||0)>=bep?'var(--green)':'var(--mfg)'};"></div></div>
+      </div>
+    </div>`;
+}
+
+// ===== 公式会計ビュー =====
+function renderOfficial(){
+  const p=proj();
+  const o=p.official||{mfg:[],sga:[],phases:[],sales:{}};
+  const ph=(o.phases||[])[curPhase]||{ship:0,ret:0,reprintUnits:0};
+  const mfgB=(o.mfg||[]).reduce((s,i)=>s+i.budget,0);
+  const sgaB=(o.sga||[]).reduce((s,i)=>s+i.budget,0);
+  let cumMfg=mfgB;
+  for(let i=0;i<=curPhase;i++){
+    const ph2=(o.phases||[])[i]||{};
+    if(ph2.reprintUnits>0) cumMfg+=ph2.reprintUnits*REPRINT_PRINT+ph2.reprintUnits*(p.price||0)*0.06;
+  }
+  const ns=(ph.ship-ph.ret)*(p.salesUnitOff||0);
+  const gp=ns-cumMfg;
+  const op=gp-sgaB;
+
+  const mfgRows=(o.mfg||[]).map(item=>`
+    <tr class="${item.linked?'linked-row':''}">
+      <td>${item.name}${item.linked?` <span class="badge badge-link">連動</span>`:''} <span class="badge badge-mfg">原価</span></td>
+      <td class="tr-right"><input class="input-cell" type="number" value="${item.budget}"
+        onchange="updateItem('mfg','${item.id}','budget',+this.value)" style="width:100px;"/></td>
+      <td class="tr-right"><input class="input-cell" type="number" value="${item.actual}"
+        onchange="updateItem('mfg','${item.id}','actual',+this.value)" style="width:100px;"/></td>
+      <td class="tr-right">${diffStr(item.budget,item.actual)}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="removeItem('mfg','${item.id}')">✕</button></td>
+    </tr>`).join('');
+
+  const sgaRows=(o.sga||[]).map(item=>`
+    <tr>
+      <td>${item.name} <span class="badge badge-sga">販管費</span></td>
+      <td class="tr-right"><input class="input-cell" type="number" value="${item.budget}"
+        onchange="updateItem('sga','${item.id}','budget',+this.value)" style="width:100px;"/></td>
+      <td class="tr-right"><input class="input-cell" type="number" value="${item.actual}"
+        onchange="updateItem('sga','${item.id}','actual',+this.value)" style="width:100px;"/></td>
+      <td class="tr-right">${diffStr(item.budget,item.actual)}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="removeItem('sga','${item.id}')">✕</button></td>
+    </tr>`).join('');
+
+  const phaseTabs=(o.phases||[]).map((ph2,i)=>`
+    <button class="phase-tab${i===curPhase?' active':''}" onclick="setPhase(${i})">
+      ${ph2.label}${ph2.reprintUnits>0?`<span class="reprint-badge">重版</span>`:''}
+    </button>`).join('');
+
+  const repLines=(o.phases||[]).slice(0,curPhase+1).filter(ph2=>ph2.reprintUnits>0)
+    .map(ph2=>`<div class="pl-row indent"><span>${ph2.label}重版（${fmt(ph2.reprintUnits)}部）</span><span>△¥${fmt(ph2.reprintUnits*REPRINT_PRINT+ph2.reprintUnits*(p.price||0)*0.06)}</span></div>`).join('');
+
+  document.getElementById('main-content').innerHTML=`
+    <div class="page-header">
+      <div>
+        <div class="page-title">${p.name}</div>
+        <div class="page-sub"><span class="badge badge-off">公式会計ビュー</span>
+          正味${Math.round((p.wholesaleOff||0)*100)}% / 実入金¥${(p.salesUnitOff||0).toLocaleString()}/部</div>
+      </div>
+      <button class="btn" onclick="openModal('edit-proj')">⚙ 設定</button>
+    </div>
+    <div class="card">
+      <div class="card-title">フェーズ別損益シミュレーション</div>
+      <div class="phase-tabs">${phaseTabs}</div>
+      <div style="margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;gap:4px;"><div style="font-size:11px;color:var(--text2);">累計出荷部数</div>
+          <input class="input-cell" type="number" value="${ph.ship}" style="width:100px;" onchange="updatePhase(${curPhase},'ship',+this.value)"/></div>
+        <div style="display:flex;flex-direction:column;gap:4px;"><div style="font-size:11px;color:var(--text2);">累計返品数</div>
+          <input class="input-cell" type="number" value="${ph.ret}" style="width:100px;" onchange="updatePhase(${curPhase},'ret',+this.value)"/></div>
+        <div style="display:flex;flex-direction:column;gap:4px;"><div style="font-size:11px;color:var(--text2);">重版部数（0=なし）</div>
+          <input class="input-cell" type="number" value="${ph.reprintUnits}" style="width:100px;" onchange="updatePhase(${curPhase},'reprintUnits',+this.value)"/></div>
+        <div style="display:flex;flex-direction:column;gap:4px;"><div style="font-size:11px;color:var(--text2);">返品率</div>
+          <div style="padding:8px 10px;font-size:13px;font-weight:600;color:var(--amber);">${ph.ship>0?(ph.ret/ph.ship*100).toFixed(1):'0'}%</div></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">累計出荷</div><div class="metric-value">${fmt(ph.ship)}部</div></div>
+        <div class="metric"><div class="metric-label">純売上（累計）</div><div class="metric-value">¥${fmt(ns)}</div></div>
+        <div class="metric"><div class="metric-label">粗利（累計）</div><div class="metric-value ${gp>=0?'green':'red'}">${yen(gp)}</div></div>
+        <div class="metric"><div class="metric-label">営業利益（累計）</div><div class="metric-value ${op>=0?'green':'red'}">${yen(op)}</div></div>
+      </div>
+      <div class="pl-block" style="margin-top:14px;">
+        <div class="pl-row"><span>純売上</span><span>¥${fmt(ns)}</span></div>
+        <div class="pl-row indent"><span>初版製造原価</span><span>△¥${fmt(mfgB)}</span></div>
+        ${repLines}
+        <div class="pl-row subtotal ${gp>=0?'green':'red'}"><span>売上総利益（粗利）</span><span>${yen(gp)}</span></div>
+        <div class="pl-row indent"><span>販管費</span><span>△¥${fmt(sgaB)}</span></div>
+        <div class="pl-row subtotal ${op>=0?'green':'red'}"><span>営業利益</span><span>${yen(op)}</span></div>
+      </div>
+      <div style="margin-top:10px;"><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">原価回収進捗</div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:${Math.min(100,Math.max(0,ns/Math.max(cumMfg,1)*100)).toFixed(0)}%;background:${op>=0?'var(--green)':'var(--mfg)'};"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">製造原価明細 <span class="badge badge-mfg">原価部門</span>
+        <button class="btn btn-sm" style="margin-left:auto;" onclick="openModal('add-item-mfg')">＋ 追加</button></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th style="width:40%">費目</th><th style="text-align:right">予算</th>
+          <th style="text-align:right">実績</th><th style="text-align:right">差異</th><th></th></tr></thead>
+        <tbody>${mfgRows}</tbody>
+        <tr class="tfoot-row"><td>製造原価 合計</td>
+          <td class="tr-right">¥${fmt(mfgB)}</td>
+          <td class="tr-right">¥${fmt((o.mfg||[]).reduce((s,i)=>s+i.actual,0))}</td>
+          <td></td><td></td></tr>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">販売費及び一般管理費 <span class="badge badge-sga">営業・管理部門</span>
+        <button class="btn btn-sm" style="margin-left:auto;" onclick="openModal('add-item-sga')">＋ 追加</button></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th style="width:40%">費目</th><th style="text-align:right">予算</th>
+          <th style="text-align:right">実績</th><th style="text-align:right">差異</th><th></th></tr></thead>
+        <tbody>${sgaRows}</tbody>
+        <tr class="tfoot-row"><td>販管費 合計</td>
+          <td class="tr-right">¥${fmt(sgaB)}</td>
+          <td class="tr-right">¥${fmt((o.sga||[]).reduce((s,i)=>s+i.actual,0))}</td>
+          <td></td><td></td></tr>
+      </table></div>
+    </div>`;
+}
+
+// ===== 人件費ビュー =====
+function renderLabor(){
+  const d=laborData;
+  const annual=(d.salary+d.bonus+d.social+d.expense)*10000;
+  const eff=Math.max(1,d.months)*(1-d.overhead/100);
+  const rate=eff>0?annual/eff:0;
+  const cur=1300000;
+  const diff2=rate-cur;
+  const pct2=Math.round(diff2/cur*100);
+  let vClass='verdict-warn',vMsg=`試算レート <strong>¥${fmt(rate)}/月</strong> は現在の130万円より <strong>${Math.abs(pct2)}%低い</strong> 水準です。`;
+  if(Math.abs(diff2)<cur*0.1){vClass='verdict-ok';vMsg=`試算レート <strong>¥${fmt(rate)}/月</strong> は130万円と <strong>±10%以内</strong> で概ね妥当です。`;}
+  else if(diff2>0){vClass='verdict-ng';vMsg=`試算レート <strong>¥${fmt(rate)}/月</strong> は130万円より <strong>${Math.abs(pct2)}%高い</strong> 水準です。現在の設定では原価が過少計上の可能性があります。`;}
+  const totalM=d.projList.reduce((s,p2)=>s+p2.months,0);
+  const allocRows=d.projList.map(p2=>`
+    <tr>
+      <td><input class="input-cell" type="text" value="${p2.name}" onchange="updateLaborProj('${p2.id}','name',this.value)" style="width:160px;text-align:left;"/></td>
+      <td class="tr-right"><input class="input-cell" type="number" value="${p2.months}" min="0.1" step="0.5"
+        onchange="updateLaborProj('${p2.id}','months',+this.value)" onblur="renderLabor()" style="width:70px;"/>人月</td>
+      <td class="tr-right" style="color:var(--text2);">${totalM>0?Math.round(p2.months/totalM*100):0}%</td>
+      <td class="tr-right" style="font-weight:600;">¥${fmt(rate*p2.months)}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="removeLaborProj('${p2.id}')">✕</button></td>
+    </tr>`).join('');
+
+  document.getElementById('main-content').innerHTML=`
+    <div class="page-header">
+      <div><div class="page-title">人件費レートシミュレーター</div>
+        <div class="page-sub"><span class="badge badge-lbr">人件費管理</span>「1人月＝いくら？」を実数で試算します</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">年収・労働条件を入力</div>
+      <div class="sim-grid">
+        <div class="form-group"><div class="form-label">年間給与（額面・万円）</div>
+          <input class="form-input" type="number" value="${d.salary}" oninput="laborData.salary=+this.value;calcLabor()"/></div>
+        <div class="form-group"><div class="form-label">賞与（年間・万円）</div>
+          <input class="form-input" type="number" value="${d.bonus}" oninput="laborData.bonus=+this.value;calcLabor()"/></div>
+        <div class="form-group"><div class="form-label">社会保険料 会社負担（万円）</div>
+          <input class="form-input" type="number" value="${d.social}" oninput="laborData.social=+this.value;calcLabor()"/></div>
+        <div class="form-group"><div class="form-label">その他経費（万円）</div>
+          <input class="form-input" type="number" value="${d.expense}" oninput="laborData.expense=+this.value;calcLabor()"/></div>
+        <div class="form-group"><div class="form-label">年間稼働月数</div>
+          <input class="form-input" type="number" value="${d.months}" min="1" max="12" oninput="laborData.months=+this.value;calcLabor()"/></div>
+        <div class="form-group"><div class="form-label">間接業務割合（%）</div>
+          <input class="form-input" type="number" value="${d.overhead}" min="0" max="80" oninput="laborData.overhead=+this.value;calcLabor()"/></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">年間総コスト</div><div class="metric-value">¥${fmt(annual)}</div></div>
+        <div class="metric"><div class="metric-label">実質稼働月数</div><div class="metric-value">${eff.toFixed(1)}ヶ月</div></div>
+        <div class="metric"><div class="metric-label">1人月単価（試算）</div><div class="metric-value blue">¥${fmt(rate)}</div></div>
+        <div class="metric"><div class="metric-label">現在の設定値</div><div class="metric-value amber">¥1,300,000</div></div>
+      </div>
+      <div class="sim-verdict ${vClass}" style="margin-top:14px;">${vMsg}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">プロジェクト別按分
+        <button class="btn btn-sm" style="margin-left:auto;" onclick="addLaborProj()">＋ 追加</button></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>プロジェクト名</th><th style="text-align:right">人月数</th>
+          <th style="text-align:right">割合</th><th style="text-align:right">配賦額</th><th></th></tr></thead>
+        <tbody>${allocRows}</tbody>
+        <tr class="tfoot-row"><td>合計</td><td class="tr-right">${totalM.toFixed(1)}人月</td>
+          <td></td><td class="tr-right">¥${fmt(rate*totalM)}</td><td></td></tr>
+      </table></div>
+      <div class="info-box" style="margin-top:12px;">💡 配賦額が確定したら、各プロジェクトの「編集人件費」に反映してください。</div>
+    </div>`;
+}
+
+function calcLabor(){renderLabor();}
+function addLaborProj(){laborData.projList.push({id:uid(),name:'新規プロジェクト',months:1});renderLabor();}
+function removeLaborProj(id){if(laborData.projList.length<=1)return;laborData.projList=laborData.projList.filter(p2=>p2.id!==id);renderLabor();}
+function updateLaborProj(id,field,val){const p2=laborData.projList.find(p2=>p2.id===id);if(p2)p2[field]=val;if(field==='months')renderLabor();}
+
+// ===== データ更新 =====
+let saveTimer=null;
+function schedSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{if(proj())saveProject(proj());},1200);
+}
+
+function updateItem(section,id,field,val){
+  const p=proj();
+  let item;
+  if(section==='internal'){
+    item=p.internal.find(i=>i.id===id);
+    if(item&&item.linked){
+      const match=(p.official.mfg||[]).find(i=>i.name===item.name&&i.linked);
+      if(match)match[field]=val;
+    }
+  } else {
+    item=(p.official[section]||[]).find(i=>i.id===id);
+    if(item&&item.linked){
+      const match=(p.internal||[]).find(i=>i.name===item.name&&i.linked);
+      if(match)match[field]=val;
+    }
+  }
+  if(item)item[field]=val;
+  schedSave();
+}
+
+function removeItem(section,id){
+  const p=proj();
+  if(section==='internal')p.internal=p.internal.filter(i=>i.id!==id);
+  else p.official[section]=p.official[section].filter(i=>i.id!==id);
+  renderMain();schedSave();
+}
+
+function updatePhase(idx,field,val){
+  proj().official.phases[idx][field]=val;
+  schedSave();
+}
+
+function setPhase(idx){curPhase=idx;renderMain();}
+
+// ===== モーダル =====
+function openModal(type){
+  const p=proj();
+  let html='';
+  if(type==='settings'){
+    html=`<div class="modal-title">GAS URL 設定</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+        Google Apps ScriptのデプロイURLを貼り付けてください。<br>設定後、ページを再読み込みするとデータが読み込まれます。
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <div class="form-label">GAS ウェブアプリURL</div>
+        <input class="form-input" id="m-gas-url" value="${GAS_URL}" placeholder="https://script.google.com/macros/s/.../exec" style="grid-column:1/-1;"/>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveGasUrl()">保存して再読み込み</button>
+      </div>`;
+  } else if(type==='new-proj'){
+    html=`<div class="modal-title">新規プロジェクト作成</div>
+      <div class="form-grid">
+        <div class="form-group full-col"><div class="form-label">書籍タイトル</div>
+          <input class="form-input" id="m-name" placeholder="例：英語リスニング実践講座"/></div>
+        <div class="form-group"><div class="form-label">定価（円）</div><input class="form-input" id="m-price" type="number" value="2000"/></div>
+        <div class="form-group"><div class="form-label">初版部数</div><input class="form-input" id="m-print" type="number" value="3000"/></div>
+        <div class="form-group"><div class="form-label">社内卸価格（円）</div><input class="form-input" id="m-isales" type="number" value="900"/></div>
+        <div class="form-group"><div class="form-label">社内正味（%）</div><input class="form-input" id="m-iwr" type="number" value="45"/></div>
+        <div class="form-group"><div class="form-label">公式正味（%）</div><input class="form-input" id="m-owr" type="number" value="70"/></div>
+        <div class="form-group"><div class="form-label">公式実入金単価（円）</div><input class="form-input" id="m-osales" type="number" value="1400"/></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="createProj()">作成</button>
+      </div>`;
+  } else if(type==='edit-proj'&&p){
+    html=`<div class="modal-title">プロジェクト設定：${p.name}</div>
+      <div class="form-grid">
+        <div class="form-group full-col"><div class="form-label">書籍タイトル</div><input class="form-input" id="m-name" value="${p.name}"/></div>
+        <div class="form-group"><div class="form-label">定価（円）</div><input class="form-input" id="m-price" type="number" value="${p.price||0}"/></div>
+        <div class="form-group"><div class="form-label">初版部数</div><input class="form-input" id="m-print" type="number" value="${p.printFirst||0}"/></div>
+        <div class="form-group"><div class="form-label">社内卸価格（円）</div><input class="form-input" id="m-isales" type="number" value="${p.salesUnitInt||0}"/></div>
+        <div class="form-group"><div class="form-label">社内正味（%）</div><input class="form-input" id="m-iwr" type="number" value="${Math.round((p.wholesaleInt||0)*100)}"/></div>
+        <div class="form-group"><div class="form-label">公式正味（%）</div><input class="form-input" id="m-owr" type="number" value="${Math.round((p.wholesaleOff||0)*100)}"/></div>
+        <div class="form-group"><div class="form-label">公式実入金単価（円）</div><input class="form-input" id="m-osales" type="number" value="${p.salesUnitOff||0}"/></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" onclick="doDeleteProj()" style="margin-right:auto;">削除</button>
+        <button class="btn" onclick="closeModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveEditProj()">保存</button>
+      </div>`;
+  } else if(type==='add-item-int'){
+    html=`<div class="modal-title">費目を追加（社内ビュー）</div>
+      <div class="form-grid">
+        <div class="form-group full-col"><div class="form-label">費目名</div><input class="form-input" id="m-iname" placeholder="費目名"/></div>
+        <div class="form-group"><div class="form-label">分類</div>
+          <select class="form-select" id="m-icat">${Object.entries(CAT_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div class="form-group"><div class="form-label">予算額（円）</div><input class="form-input" id="m-ib" type="number" value="0"/></div>
+        <div class="form-group"><div class="form-label">実績額（円）</div><input class="form-input" id="m-ia" type="number" value="0"/></div>
+        <div class="form-group full-col"><label class="checkbox-row"><input type="checkbox" id="m-lk"/>公式会計の製造原価と連動する</label></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="addItemInt()">追加</button>
+      </div>`;
+  } else if(type==='add-item-mfg'||type==='add-item-sga'){
+    const sec=type==='add-item-mfg'?'mfg':'sga';
+    const lbl=sec==='mfg'?'製造原価':'販管費';
+    html=`<div class="modal-title">費目を追加（${lbl}）</div>
+      <div class="form-grid">
+        <div class="form-group full-col"><div class="form-label">費目名</div><input class="form-input" id="m-iname" placeholder="費目名"/></div>
+        <div class="form-group"><div class="form-label">予算額（円）</div><input class="form-input" id="m-ib" type="number" value="0"/></div>
+        <div class="form-group"><div class="form-label">実績額（円）</div><input class="form-input" id="m-ia" type="number" value="0"/></div>
+        ${sec==='mfg'?`<div class="form-group full-col"><label class="checkbox-row"><input type="checkbox" id="m-lk"/>社内ビューと連動する</label></div>`:''}
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="addItemOff('${sec}')">追加</button>
+      </div>`;
+  }
+  document.getElementById('modal-body').innerHTML=html;
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(()=>{const f=document.querySelector('.modal .form-input');if(f)f.focus();},100);
+}
+
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+
+function saveGasUrl(){
+  const url=document.getElementById('m-gas-url').value.trim();
+  if(!url){alert('URLを入力してください');return;}
+  localStorage.setItem('gas_url',url);
+  GAS_URL=url;
+  closeModal();
+  location.reload();
+}
+
+async function createProj(){
+  const name=document.getElementById('m-name').value.trim();
+  if(!name){alert('タイトルを入力してください');return;}
+  const p={
+    id:uid(),name,
+    price:+document.getElementById('m-price').value||2000,
+    printFirst:+document.getElementById('m-print').value||3000,
+    wholesaleInt:+document.getElementById('m-iwr').value/100||0.45,
+    wholesaleOff:+document.getElementById('m-owr').value/100||0.70,
+    salesUnitInt:+document.getElementById('m-isales').value||900,
+    salesUnitOff:+document.getElementById('m-osales').value||1400,
+    internal:makeDefaultInternal(),official:makeDefaultOfficial()
+  };
+  closeModal();
+  projects.push(p);curId=p.id;curPhase=0;
+  renderSidebar();renderMain();
+  await saveProject(p);
+}
+
+async function saveEditProj(){
+  const p=proj();
+  p.name=document.getElementById('m-name').value.trim()||p.name;
+  p.price=+document.getElementById('m-price').value||p.price;
+  p.printFirst=+document.getElementById('m-print').value||p.printFirst;
+  p.salesUnitInt=+document.getElementById('m-isales').value||p.salesUnitInt;
+  p.wholesaleInt=+document.getElementById('m-iwr').value/100||p.wholesaleInt;
+  p.wholesaleOff=+document.getElementById('m-owr').value/100||p.wholesaleOff;
+  p.salesUnitOff=+document.getElementById('m-osales').value||p.salesUnitOff;
+  closeModal();renderSidebar();renderMain();
+  await saveProject(p);
+}
+
+async function doDeleteProj(){
+  if(!confirm(`「${proj().name}」を削除しますか？`))return;
+  const id=curId;
+  projects=projects.filter(p=>p.id!==id);
+  curId=projects[0]?.id||null;curPhase=0;
+  closeModal();renderSidebar();renderMain();
+  await deleteProjectRemote(id);
+}
+
+function addItemInt(){
+  const name=document.getElementById('m-iname').value.trim();
+  if(!name){alert('費目名を入力してください');return;}
+  const linked=document.getElementById('m-lk').checked;
+  const item={id:uid(),cat:document.getElementById('m-icat').value,name,
+    budget:+document.getElementById('m-ib').value||0,
+    actual:+document.getElementById('m-ia').value||0,linked};
+  proj().internal.push(item);
+  if(linked)proj().official.mfg.push({...item,id:uid()});
+  closeModal();renderMain();schedSave();
+}
+
+function addItemOff(sec){
+  const name=document.getElementById('m-iname').value.trim();
+  if(!name){alert('費目名を入力してください');return;}
+  const linked=sec==='mfg'&&document.getElementById('m-lk')?.checked;
+  const item={id:uid(),cat:'misc',name,
+    budget:+document.getElementById('m-ib').value||0,
+    actual:+document.getElementById('m-ia').value||0,linked};
+  proj().official[sec].push(item);
+  if(linked)proj().internal.push({...item,id:uid()});
+  closeModal();renderMain();schedSave();
+}
+
+function exportCSV(){
+  const rows=[['プロジェクト','ビュー','セクション','費目','連動','予算','実績','差異']];
+  projects.forEach(p=>{
+    (p.internal||[]).forEach(i=>rows.push([p.name,'社内','—',i.name,i.linked?'○':'',i.budget,i.actual,i.budget-i.actual]));
+    (p.official?.mfg||[]).forEach(i=>rows.push([p.name,'公式','製造原価',i.name,i.linked?'○':'',i.budget,i.actual,i.budget-i.actual]));
+    (p.official?.sga||[]).forEach(i=>rows.push([p.name,'公式','販管費',i.name,'',i.budget,i.actual,i.budget-i.actual]));
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='原価管理_全プロジェクト.csv';a.click();
+}
+
+// ===== 起動 =====
+loadAll();
+</script>
+</body>
+</html>
